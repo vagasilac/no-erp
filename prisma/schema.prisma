@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Org {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  users     User[]
+  customers Customer[]
+  products  Product[]
+  orders    Order[]
+  invoices  Invoice[]
+  threads   MessageThread[]
+  settings  OrgSettings?
+  channels  ChannelConfig[]
+  audit     AuditLog[]
+}
+
+model OrgSettings {
+  id              String   @id @default(cuid())
+  orgId           String   @unique
+  org             Org      @relation(fields: [orgId], references: [id])
+  primaryLang     String   @default("en")
+  secondaryLang   String?
+  currency        String   @default("EUR")
+  units           String   @default("pcs")
+  requireApproval Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ChannelConfig {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+  channel   String   // whatsapp, email
+  config    Json
+}
+
+model User {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+  email     String   @unique
+  name      String?
+  role      String   @default("owner") // owner, manager, worker
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  orgId        String
+  org          Org      @relation(fields: [orgId], references: [id])
+  displayName  String
+  channelIds   Json?
+  metadata     Json?
+  orders       Order[]
+  threads      MessageThread[]
+  createdAt    DateTime @default(now())
+
+  @@unique([orgId, displayName], name: "orgId_displayName")
+}
+
+model Product {
+  id       String   @id @default(cuid())
+  orgId    String
+  org      Org      @relation(fields: [orgId], references: [id])
+  sku      String
+  name     String
+  uom      String   @default("pcs")
+  metadata Json?
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, sku], name: "orgId_sku")
+}
+
+model BomItem {
+  id          String  @id @default(cuid())
+  orgId       String
+  org         Org     @relation(fields: [orgId], references: [id])
+  parentId    String
+  parent      Product @relation("BomParent", fields: [parentId], references: [id])
+  componentId String
+  component   Product @relation("BomComponent", fields: [componentId], references: [id])
+  qty         Decimal
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  orgId      String
+  org        Org         @relation(fields: [orgId], references: [id])
+  customerId String?
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  status     OrderStatus @default(pending_confirm)
+  dueDate    DateTime?
+  source     String?
+  meta       Json?
+  lines      OrderLine[]
+  createdAt  DateTime    @default(now())
+}
+
+enum OrderStatus {
+  draft
+  pending_confirm
+  confirmed
+  in_production
+  fulfilled
+  cancelled
+}
+
+model OrderLine {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  qty       Decimal
+  price     Decimal?
+  currency  String?
+  meta      Json?
+}
+
+model InventoryMovement {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Org      @relation(fields: [orgId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  qtyChange  Decimal
+  reason     String
+  relatedDoc String?
+  createdAt  DateTime @default(now())
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+  number    String
+  supplier  String?
+  customer  String?
+  date      DateTime?
+  currency  String?
+  total     Decimal?
+  lines     Json?
+  createdAt DateTime @default(now())
+}
+
+model MessageThread {
+  id               String   @id @default(cuid())
+  orgId            String
+  org              Org      @relation(fields: [orgId], references: [id])
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  channel          String
+  externalThreadId String?
+  status           String   @default("open")
+  meta             Json?
+  messages         Message[]
+  createdAt        DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    MessageThread @relation(fields: [threadId], references: [id])
+  direction String   // inbound, outbound
+  text      String?
+  attachments Json?
+  nlu       Json?
+  action    Json?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+  actor     String
+  action    String
+  target    String?
+  details   Json?
+  createdAt DateTime @default(now())
+}

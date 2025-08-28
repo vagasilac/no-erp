@@ -1,0 +1,5 @@
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:#111}
+h1,h2,h3{margin:0 0 8px}
+a{color:#0a58ca;text-decoration:none}
+a:hover{text-decoration:underline}

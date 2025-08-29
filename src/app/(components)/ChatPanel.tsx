@@ -1,6 +1,12 @@
 'use client';
 import { useState, useRef } from "react";
 
+declare global {
+  interface Window {
+    MediaRecorder: typeof MediaRecorder;
+  }
+}
+
 export default function ChatPanel() {
   const [input, setInput] = useState("");
   const [log, setLog] = useState<string[]>([]);
@@ -43,7 +49,7 @@ export default function ChatPanel() {
       <h2>Chat / Command</h2>
       <div style={{ display: "flex", gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} placeholder="e.g. add order 12 pcs Nordic Chair for Friday" style={{ flex: 1, padding: 8 }} />
-        <button onClick={send}>Send</button>
+        <button onClick={() => send()}>Send</button>
         <button onClick={toggleRec}>🎤</button>
       </div>
       <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 8, padding: 8, height: 260, overflow: "auto" }}>

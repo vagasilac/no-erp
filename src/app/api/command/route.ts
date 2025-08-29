@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getOrgIdFromAuth } from "@/lib/auth-firebase";
 import { classifyAndExtract, needsClarification, isOwnerSettingCommand } from "@/lib/nlp";
 import { executeNLU, applyOwnerSetting } from "@/lib/actions";
 import { audit } from "@/lib/audit";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   const orgId = await getOrgIdFromAuth(req);
   const { text } = await req.json();
   if (!text) return NextResponse.json({ ok: false, message: "No text provided" }, { status: 400 });

@@ -1,104 +1,107 @@
-import { db } from '../firebase-admin';
-import { Repo } from './contracts';
+import { db } from "@/lib/firebase-admin";
+import type { Repo, ID, ISODate } from "./contracts";
 
-function orgCol(orgId: string, col: string) {
-  return db.collection('orgs').doc(orgId).collection(col);
+function coll(orgId: ID, name: string) {
+  return db.collection("orgs").doc(orgId).collection(name);
 }
 
 export const firebaseRepo: Repo = {
   orders: {
     async create(orgId, data) {
-      const ref = await orgCol(orgId, 'orders').add({ ...data, createdAt: new Date() });
+      const ref = coll(orgId, "orders").doc();
+      await ref.set({ ...data, createdAt: Date.now() });
       return ref.id;
     },
     async update(orgId, id, patch) {
-      await orgCol(orgId, 'orders').doc(id).set(patch, { merge: true });
-    },
-    async dueInRange(orgId, fromISO, toISO) {
-      const snap = await orgCol(orgId, 'orders')
-        .where('dueDate', '>=', new Date(fromISO))
-        .where('dueDate', '<=', new Date(toISO))
-        .get();
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      await coll(orgId, "orders").doc(id).update(patch);
     },
     async findById(orgId, id) {
-      const doc = await orgCol(orgId, 'orders').doc(id).get();
-      return doc.exists ? { id: doc.id, ...doc.data() } : null;
-    }
+      const snap = await coll(orgId, "orders").doc(id).get();
+      return snap.exists ? { id: snap.id, ...snap.data() } : null;
+    },
+    async dueInRange(orgId, fromISO, toISO) {
+      const q = await coll(orgId, "orders")
+        .where("dueDate", ">=", fromISO)
+        .where("dueDate", "<=", toISO)
+        .get();
+      return q.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+    async countOpen(orgId) {
+      const q = await coll(orgId, "orders")
+        .where("status", "in", ["pending_confirm", "confirmed", "in_production"])
+        .get();
+      return q.size;
+    },
   },
+
   products: {
     async findByName(orgId, name) {
-      const snap = await orgCol(orgId, 'products').where('name', '==', name).limit(1).get();
-      const d = snap.docs[0];
-      return d ? { id: d.id, ...d.data() } : null;
+      const q = await coll(orgId, "products").where("name", "==", name).limit(1).get();
+      return q.empty ? null : { id: q.docs[0].id, ...q.docs[0].data() };
     },
     async upsertMany(orgId, list) {
-      for (const p of list) {
-        await orgCol(orgId, 'products').doc(p.id || p.sku || p.name).set(p, { merge: true });
-      }
+      const batch = db.batch();
+      list.forEach(item => {
+        const ref = coll(orgId, "products").doc(item.sku);
+        batch.set(
+          ref,
+          { sku: item.sku, name: item.name, uom: item.uom || "pcs", updatedAt: Date.now() },
+          { merge: true }
+        );
+      });
+      await batch.commit();
       return list.length;
     },
     async list(orgId) {
-      const snap = await orgCol(orgId, 'products').get();
+      const snap = await coll(orgId, "products").get();
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
+    },
   },
-  customers: {
-    async upsertByDisplayName(orgId, displayName) {
-      const ref = orgCol(orgId, 'customers').doc(displayName);
-      await ref.set({ displayName }, { merge: true });
-      const doc = await ref.get();
-      return { id: doc.id, ...doc.data() };
-    }
-  },
+
   settings: {
     async get(orgId) {
-      const doc = await orgCol(orgId, 'config').doc('settings').get();
-      return doc.exists ? doc.data() : {};
+      const ref = coll(orgId, "settings").doc("default");
+      const snap = await ref.get();
+      return snap.exists ? snap.data() : {};
     },
     async set(orgId, patch) {
-      await orgCol(orgId, 'config').doc('settings').set(patch, { merge: true });
-    }
+      const ref = coll(orgId, "settings").doc("default");
+      await ref.set({ ...patch, updatedAt: Date.now() }, { merge: true });
+    },
   },
+
   threads: {
     async create(orgId, data) {
-      const ref = await orgCol(orgId, 'threads').add({ ...data, createdAt: new Date() });
+      const ref = coll(orgId, "threads").doc();
+      await ref.set({ ...data, createdAt: Date.now() });
       return ref.id;
     },
     async addMessage(orgId, threadId, msg) {
-      const ref = await orgCol(orgId, 'threads').doc(threadId).collection('messages').add({ ...msg, createdAt: new Date() });
+      const ref = coll(orgId, "threads").doc(threadId).collection("messages").doc();
+      await ref.set({ ...msg, createdAt: Date.now() });
       return ref.id;
     },
-    async delete(orgId, threadId) {
-      const msgSnap = await orgCol(orgId, 'threads').doc(threadId).collection('messages').get();
-      for (const m of msgSnap.docs) await m.ref.delete();
-      await orgCol(orgId, 'threads').doc(threadId).delete();
-    },
-    async export(orgId, threadId) {
-      const threadDoc = await orgCol(orgId, 'threads').doc(threadId).get();
-      if (!threadDoc.exists) return null;
-      const msgs = await orgCol(orgId, 'threads').doc(threadId).collection('messages').orderBy('createdAt').get();
-      return {
-        thread: { id: threadDoc.id, ...threadDoc.data() },
-        messages: msgs.docs.map(d => ({ id: d.id, ...d.data() }))
-      };
-    }
   },
+
   invoices: {
     async create(orgId, data) {
-      const ref = await orgCol(orgId, 'invoices').add({ ...data, createdAt: new Date() });
+      const ref = coll(orgId, "invoices").doc();
+      await ref.set({ ...data, createdAt: Date.now() });
       return ref.id;
-    }
+    },
   },
+
   inventory: {
     async move(orgId, data) {
-      const ref = await orgCol(orgId, 'inventory').add({ ...data, createdAt: new Date() });
+      const ref = coll(orgId, "inventoryMoves").doc();
+      await ref.set({ ...data, createdAt: Date.now() });
       return ref.id;
-    }
+    },
   },
+
   audit: {
     async log(orgId, entry) {
-      await orgCol(orgId, 'audit').add({ ...entry, createdAt: new Date() });
-    }
-  }
+      await coll(orgId, "audit").doc().set({ ...entry, createdAt: Date.now() });
+    },
+  },
 };

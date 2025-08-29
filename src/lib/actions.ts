@@ -29,7 +29,7 @@ export async function applyOwnerSetting(orgId: string, raw: string) {
   switch (key) {
     case "lang": {
       const [p, sec] = val.split(/[,\s]+/);
-      await repo.settings.set(orgId, { primaryLang: p.toLowerCase(), secondaryLang: sec?.toLowerCase() || null });
+      await repo.settings.set(orgId, { primaryLang: p.toLowerCase(), secondaryLang: sec?.toLowerCase() || undefined });
       return { ok: true, message: `Languages set to ${val}` };
     }
     case "currency": {

@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 import { NLUResult } from "@/lib/types";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+console.log("DEBUG OPENAI KEY:", process.env.OPENAI_API_KEY?.slice(0, 10));
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function classifyAndExtract(text: string): Promise<NLUResult> {
   const system = `You classify SME customer messages and extract entities.

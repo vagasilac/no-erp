@@ -15,8 +15,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   batch.delete(tRef);
   await batch.commit();
 
-  const [files] = await bucket.getFiles({ prefix: `orgs/${orgId}/threads/${id}/` });
-  await Promise.all(files.map(f => f.delete()));
+  if (bucket) {
+    const [files] = await bucket.getFiles({ prefix: `orgs/${orgId}/threads/${id}/` });
+    await Promise.all(files.map(f => f.delete()));
+  }
 
   return NextResponse.json({ ok: true });
 }

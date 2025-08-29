@@ -8,9 +8,14 @@ export default function OrderPage({ params }: { params: { org: string } }) {
 
   async function submit() {
     const text = `place order ${qty} ${product}`;
-    const res = await fetch(`/api/command`, { method: 'POST', headers: { 'Content-Type':'application/json', 'x-org-id': params.org }, body: JSON.stringify({ text }) });
+    const res = await fetch(`/api/command`, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ text }) });
     const data = await res.json();
     setMsg(data.message || JSON.stringify(data));
+  }
+
+  function wa() {
+    const text = `place order ${qty} ${product}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   }
 
   return (
@@ -19,6 +24,7 @@ export default function OrderPage({ params }: { params: { org: string } }) {
       <input placeholder="Product name" value={product} onChange={e=>setProduct(e.target.value)} />
       <input type="number" min={1} value={qty} onChange={e=>setQty(Number(e.target.value))} />
       <button onClick={submit}>Submit</button>
+      <button onClick={wa}>WhatsApp</button>
       <p>{msg}</p>
     </div>
   );

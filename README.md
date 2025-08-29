@@ -1,6 +1,6 @@
 # Conversational Micro‑ERP (MVP)
 
-A chat‑first, document‑aware micro‑ERP starter built with Next.js App Router + Prisma.
+A chat‑first, document‑aware micro‑ERP starter built with Next.js App Router. The data layer is switchable between Firebase (Firestore) and Postgres/Prisma via a repo adapter.
 
 ## Features
 - WhatsApp & Email **ingress** (webhooks) → normalize → NLU → actions
@@ -13,26 +13,43 @@ A chat‑first, document‑aware micro‑ERP starter built with Next.js App Rout
 - **Auth**: NextAuth (Email magic link)
 - Multi‑tenant ready (orgId everywhere) + audit log
 
+## Architecture
+
+```
+[WhatsApp/Email] -> Webhooks -> NLU -> Actions -> Repo -> (Firestore|Prisma)
+                                              ^
+                                              |
+                                  ChatPanel / Dashboard
+```
+
 ## Quickstart
-1. Copy `.env.example` → `.env` and fill values (DB, OpenAI, Email).
+1. Copy `.env.example` → `.env` and fill values.
 2. Install deps
    ```bash
    npm i
    ```
-3. Prisma
-   ```bash
-   npm run prisma:generate
-   npm run prisma:migrate
-   npm run prisma:seed
-   ```
-4. Dev server
-   ```bash
-   npm run dev
-   ```
+3. Choose backend via `DATA_BACKEND`.
+
+### Firebase mode (default)
+```
+DATA_BACKEND=firebase
+npm run dev
+```
+Requires service account vars and EU region (`europe-west1`).
+
+### Prisma/Postgres mode
+```
+DATA_BACKEND=prisma
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+npm run dev
+```
+
 5. Open http://localhost:3000 and try in the Chat:
-   ```
-   add order 12 pcs Nordic Chair for Friday
-   ```
+```
+add order 12 pcs Nordic Chair for Friday
+```
 
 ## WhatsApp Owner Settings (via Chat)
 - `SET LANG en,hu`
@@ -48,12 +65,16 @@ Use IMAP node → Function to build JSON:
 → HTTP Request (POST) to `/api/webhooks/email` with `x-org-id` header.
 
 ## Voice (STT)
-POST audio/webm or mp3 to `/api/voice/stt` → returns `{"text": "..."}`. Then forward to `/api/command`.
+POST `speech/webm` or `audio/mpeg` to `/api/voice/stt` → returns `{ "text": "..." }` and forward to `/api/command`.
 
 ## GDPR & EU residency
-- Use EU DB/storage providers (Neon/Aiven, Wasabi EU/Scaleway).
+- EU regions by default (`europe-west1`/`eur3`).
+- Storage paths: `orgs/{orgId}/...`.
+- `/api/gdpr/delete-thread` and `/api/gdpr/export-thread` allow owner-initiated deletion/export.
 - Prefer EU-friendly WA providers (MessageBird/Infobip). Twilio optional with consent.
-- Add DPA and retention/deletion endpoints for threads and attachments.
+
+### Cost note
+Firestore charges per document read; aggregate/cache where possible.
 
 ## Notes
 - This is an MVP scaffold. Replace stubs (OCR, STT) with production providers.

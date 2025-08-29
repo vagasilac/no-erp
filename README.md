@@ -8,7 +8,7 @@ A chat‑first, document‑aware micro‑ERP starter built with Next.js App Rout
 - Dashboard & tables (orders + KPIs)
 - **Settings via WhatsApp** (languages, currency, units, approval policy)
 - Public **micro‑site** per org: `/{org}/catalog` and `/{org}/order`
-- Invoice OCR **stub** (wire Azure FR/Rossum later)
+- Invoice OCR via Google Document AI (EU)
 - **Voice (STT)** stub endpoint
 - **Auth**: NextAuth (Email magic link)
 - Multi‑tenant ready (orgId everywhere) + audit log
@@ -50,6 +50,18 @@ npm run dev
 ```
 add order 12 pcs Nordic Chair for Friday
 ```
+
+## Invoice OCR (Document AI)
+1. Enable the Document AI API.
+2. Create an **Invoice Parser** processor in the EU (`DOCAI_LOCATION=eu`) and note its processor ID.
+3. Set `DOCAI_LOCATION` and `DOCAI_INVOICE_PROCESSOR_ID` in `.env`.
+4. Use an EU Firebase Storage bucket.
+5. Deploy the function:
+   ```bash
+   npm --prefix functions run build
+   firebase deploy --only functions
+   ```
+6. Upload invoices to `orgs/{orgId}/inbox/` to trigger parsing; results go to `orgs/{orgId}/invoices/{docId}` and files move to `/processed/`.
 
 ## WhatsApp Owner Settings (via Chat)
 - `SET LANG en,hu`

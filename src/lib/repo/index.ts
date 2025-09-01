@@ -1,6 +1,12 @@
-import { firebaseRepo } from "./firestore";
-import { prismaRepo } from "./prisma";
 import type { Repo } from "./contracts";
 
-export const repo: Repo =
-  process.env.DATA_BACKEND === "prisma" ? prismaRepo : firebaseRepo;
+let selected: Repo;
+if (process.env.DATA_BACKEND === "prisma") {
+  const { prismaRepo } = await import("./prisma");
+  selected = prismaRepo;
+} else {
+  const { firebaseRepo } = await import("./firestore");
+  selected = firebaseRepo;
+}
+
+export const repo: Repo = selected;
